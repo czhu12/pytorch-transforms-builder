@@ -12,6 +12,12 @@ class TransformationDefinition:
     def __init__(self, name, params=[]):
         self.name = name
         self.params = params
+        self.documentation = None
+        documentation_file = './templates/{}.md'.format(name)
+        if os.path.exists(documentation_file):
+            print("found {}".format(documentation_file))
+            with open('./templates/{}.md'.format(name)) as f:
+                self.documentation = f.read()
 
 class NumberRange:
     def __init__(self, name, min=0., max=1.):
@@ -155,6 +161,7 @@ TRANSFORMS_SUPPORTED = [
         BooleanInput("inplace"),
     ]),
 ]
+# Clean up
 image_path = None
 state = SessionState.get(applied_transforms=[])
 
@@ -164,6 +171,9 @@ selection = st.sidebar.selectbox("Select Transformation", transform_names)
 if selection != "":
     # Render options
     transform = [t for t in TRANSFORMS_SUPPORTED if t.name == selection][0]
+    if transform.documentation:
+        st.sidebar.markdown(transform.documentation)
+
     param_settings = {}
     # Render transform options
     for param_type in transform.params:
@@ -189,11 +199,12 @@ if len(state.applied_transforms) > 0:
 
     if st.sidebar.button("Remove All"):
         state.applied_transforms = []
-
+else:
+    with open('./templates/instructions.md', 'r') as f:
+        st.markdown(f.read())
 
 transformations = Transformations(state.applied_transforms)
 st.code(str(transformations))
-
 
 # Get Image
 st.sidebar.markdown("## 2. Select an Image")
@@ -204,6 +215,8 @@ st.sidebar.markdown("*OR*")
 uploaded_image = st.sidebar.file_uploader("Upload Image")
 
 ctx = get_report_ctx()
+saved_image = None
+
 if uploaded_image is not None:
     if uploaded_image.type != 'image/png':
         st.text("File type {} not supported".format(uploaded_image.type))
@@ -211,19 +224,21 @@ if uploaded_image is not None:
 
     source_image = Image.open(uploaded_image)
     saved_image = os.path.join('./data/uploads', "{}-currentimg.png".format(ctx.session_id))
-elif selected_image_path:
+elif selected_image_path != '':
     source_image = Image.open(os.path.join('./examples/', selected_image_path))
     saved_image = os.path.join('./data/uploads', "{}-currentimg.png".format(ctx.session_id))
 
-transform = transformations.to_pytorch()
-transformed_image = transform(source_image)
-# TODO check if there are transformed_images
-transformed_image.save(saved_image)
+if saved_image:
+    transform = transformations.to_pytorch()
+    transformed_image = transform(source_image)
+    width, height = transformed_image.size
+    transformed_image = transformed_image.resize((500, int(height * 500 / width)))
+    # TODO check if there are transformed_images
+    transformed_image.save(saved_image)
 
-if len(state.applied_transforms) > 0:
-    if st.button("Regenerate"):
-        # This will re-run the transformation
-        pass
+    if len(state.applied_transforms) > 0:
+        if st.button("Regenerate"):
+            # This will re-run the transformation
+            pass
 
-st.image(saved_image)
-
+    st.image(saved_image)
