@@ -138,7 +138,7 @@ TRANSFORMS_SUPPORTED = [
     TransformationDefinition("RandomRotation", params=[
         NumberRange("degrees", min=0, max=360),
         BooleanInput("expand"),
-        TupleInput("center", NumberInput("center_1", min=0), NumberInput("center_1", min=0)),
+        TupleInput("center", NumberInput("center_1", min=0), NumberInput("center_2", min=0)),
         CategoricalInput('interpolation', [InterpolationMode.NEAREST, InterpolationMode.BILINEAR, InterpolationMode.BICUBIC]),
         NumberInput("fill", min=0, max=None),
     ]),
